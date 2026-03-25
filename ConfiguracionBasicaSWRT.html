@@ -1,0 +1,1453 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía CCNA — Router-on-a-Stick, VLANs, DHCP y Enrutamiento</title>
+<style>
+/* ════════════════════════════════════════
+   VARIABLES
+════════════════════════════════════════ */
+:root {
+  --bg:        #0d0f18;
+  --surface:   #161925;
+  --surface2:  #1e2233;
+  --surface3:  #252a3d;
+  --border:    #2c3150;
+  --text:      #cdd6f4;
+  --muted:     #6c7086;
+  --accent:    #89b4fa;
+  --green:     #a6e3a1;
+  --yellow:    #f9e2af;
+  --red:       #f38ba8;
+  --teal:      #94e2d5;
+  --sky:       #89dceb;
+  --lavender:  #b4befe;
+  --peach:     #fab387;
+  --pink:      #f5c2e7;
+  --code-bg:   #10121d;
+  --comment:   #6a9955;
+  --cmd:       #ce9178;
+  --kw:        #569cd6;
+  --val:       #b5cea8;
+  --str:       #d69d85;
+
+  --sidebar-w: 270px;
+  --topbar-h:  52px;
+}
+
+/* ════════════════════════════════════════
+   RESET & BASE
+════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* ════════════════════════════════════════
+   TOPBAR (mobile)
+════════════════════════════════════════ */
+#topbar {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--topbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+  z-index: 200;
+}
+
+#topbar h1 {
+  font-size: .9rem;
+  font-weight: 700;
+  color: var(--accent);
+  flex: 1;
+}
+
+#menu-btn {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 6px;
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* ════════════════════════════════════════
+   LAYOUT
+════════════════════════════════════════ */
+#layout {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR
+════════════════════════════════════════ */
+#sidebar {
+  width: var(--sidebar-w);
+  min-width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 20px 0 40px;
+  display: flex;
+  flex-direction: column;
+  transition: transform .25s ease;
+}
+
+.sb-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 18px 18px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 10px;
+}
+
+.sb-logo-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--accent), var(--lavender));
+  display: flex; align-items: center; justify-content: center;
+  font-size: .9rem;
+  flex-shrink: 0;
+}
+
+.sb-logo-text { font-size: .8rem; font-weight: 700; color: var(--text); line-height: 1.2; }
+.sb-logo-sub  { font-size: .65rem; color: var(--muted); }
+
+.sb-section-label {
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 12px 18px 6px;
+}
+
+.sb-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 18px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .82rem;
+  border-left: 3px solid transparent;
+  transition: all .14s;
+  line-height: 1.3;
+}
+
+.sb-link:hover { color: var(--text); background: rgba(255,255,255,.04); }
+.sb-link.active { color: var(--accent); background: rgba(137,180,250,.08); border-left-color: var(--accent); }
+
+.sb-num {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .65rem;
+  font-weight: 800;
+  flex-shrink: 0;
+  border: 1px solid currentColor;
+  opacity: .7;
+}
+
+.sb-badge {
+  margin-left: auto;
+  font-size: .6rem;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.b-all  { background: rgba(137,180,250,.15); color: var(--accent); }
+.b-sw   { background: rgba(148,226,213,.15); color: var(--teal); }
+.b-rt   { background: rgba(243,139,168,.15); color: var(--red); }
+.b-ver  { background: rgba(166,227,161,.15); color: var(--green); }
+
+/* Overlay */
+#overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.6);
+  z-index: 150;
+}
+
+/* ════════════════════════════════════════
+   MAIN
+════════════════════════════════════════ */
+main {
+  flex: 1;
+  max-width: 860px;
+  padding: 44px 48px 80px;
+  overflow-x: hidden;
+}
+
+/* ════════════════════════════════════════
+   PAGE HEADER
+════════════════════════════════════════ */
+.page-hero {
+  text-align: center;
+  margin-bottom: 40px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-hero h1 {
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: var(--accent);
+  letter-spacing: -.02em;
+  margin-bottom: 6px;
+}
+
+.page-hero p {
+  color: var(--muted);
+  font-size: .9rem;
+  margin-bottom: 18px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 7px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 11px;
+  border-radius: 20px;
+  font-size: .72rem;
+  font-weight: 700;
+  border: 1px solid;
+}
+.c-blue   { color: var(--accent);   border-color: rgba(137,180,250,.35); background: rgba(137,180,250,.06); }
+.c-green  { color: var(--green);    border-color: rgba(166,227,161,.35); background: rgba(166,227,161,.06); }
+.c-yellow { color: var(--yellow);   border-color: rgba(249,226,175,.35); background: rgba(249,226,175,.06); }
+.c-teal   { color: var(--teal);     border-color: rgba(148,226,213,.35); background: rgba(148,226,213,.06); }
+.c-red    { color: var(--red);      border-color: rgba(243,139,168,.35); background: rgba(243,139,168,.06); }
+.c-lav    { color: var(--lavender); border-color: rgba(180,190,254,.35); background: rgba(180,190,254,.06); }
+
+/* ════════════════════════════════════════
+   TOPOLOGY TABLE
+════════════════════════════════════════ */
+.topo-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 28px;
+  overflow: hidden;
+}
+
+.topo-card-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 20px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.topo-card-header span { color: var(--muted); font-weight: 400; margin-left: auto; font-size: .75rem; }
+
+.topo-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .8rem;
+}
+
+.topo-table th {
+  background: var(--surface3);
+  color: var(--muted);
+  font-weight: 700;
+  font-size: .68rem;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 9px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+
+.topo-table td {
+  padding: 9px 16px;
+  border-bottom: 1px solid rgba(44,49,80,.5);
+  color: var(--text);
+  font-family: 'Consolas', monospace;
+}
+
+.topo-table tr:last-child td { border-bottom: none; }
+.topo-table tr:hover td { background: rgba(255,255,255,.02); }
+
+.topo-table td:first-child { color: var(--accent); font-weight: 700; }
+.topo-table .role { font-family: inherit; color: var(--muted); font-size: .78rem; }
+.topo-table .ip-cell { color: var(--green); }
+.topo-table .vlan-cell { color: var(--yellow); }
+.topo-table .mode-trunk { color: var(--teal); }
+.topo-table .mode-acc   { color: var(--peach); }
+
+/* ════════════════════════════════════════
+   SECTION CARD
+════════════════════════════════════════ */
+.section {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  margin-bottom: 24px;
+  overflow: hidden;
+  scroll-margin-top: 20px;
+}
+
+.sec-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 22px;
+  background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+}
+
+.step-dot {
+  width: 30px; height: 30px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: .78rem;
+  font-weight: 900;
+  flex-shrink: 0;
+  border: 1.5px solid;
+}
+.d-blue   { color: var(--accent);   border-color: var(--accent);   background: rgba(137,180,250,.12); }
+.d-teal   { color: var(--teal);     border-color: var(--teal);     background: rgba(148,226,213,.12); }
+.d-green  { color: var(--green);    border-color: var(--green);    background: rgba(166,227,161,.12); }
+.d-red    { color: var(--red);      border-color: var(--red);      background: rgba(243,139,168,.12); }
+.d-yellow { color: var(--yellow);   border-color: var(--yellow);   background: rgba(249,226,175,.12); }
+.d-lav    { color: var(--lavender); border-color: var(--lavender); background: rgba(180,190,254,.12); }
+.d-peach  { color: var(--peach);    border-color: var(--peach);    background: rgba(250,179,135,.12); }
+
+.sec-title { font-size: .95rem; font-weight: 700; color: var(--text); flex: 1; }
+
+.dev-tag {
+  font-size: .65rem;
+  font-weight: 800;
+  padding: 2px 9px;
+  border-radius: 6px;
+  letter-spacing: .04em;
+  flex-shrink: 0;
+}
+.tag-sw   { background: rgba(148,226,213,.12); color: var(--teal); }
+.tag-rt   { background: rgba(243,139,168,.12); color: var(--red); }
+.tag-all  { background: rgba(137,180,250,.12); color: var(--accent); }
+.tag-ver  { background: rgba(166,227,161,.12); color: var(--green); }
+
+.sec-body { padding: 18px 22px; }
+
+.sec-desc {
+  color: var(--muted);
+  font-size: .875rem;
+  margin-bottom: 14px;
+  line-height: 1.6;
+}
+.sec-desc strong { color: var(--text); }
+
+/* ════════════════════════════════════════
+   CODE BLOCK
+════════════════════════════════════════ */
+.code-wrap {
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  margin-bottom: 12px;
+}
+
+.code-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: #0a0c16;
+  border-bottom: 1px solid var(--border);
+}
+
+.dots { display: flex; gap: 5px; }
+.dot  { width: 10px; height: 10px; border-radius: 50%; }
+.dot-r { background: #ff5f57; }
+.dot-y { background: #ffbd2e; }
+.dot-g { background: #28c840; }
+
+.code-label {
+  flex: 1;
+  font-family: 'Consolas', monospace;
+  font-size: .68rem;
+  color: var(--muted);
+  letter-spacing: .05em;
+  text-align: center;
+}
+
+.copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  font-size: .68rem;
+  font-family: inherit;
+  padding: 3px 10px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all .15s;
+  white-space: nowrap;
+}
+.copy-btn:hover  { border-color: var(--accent); color: var(--accent); }
+.copy-btn.copied { border-color: var(--green);  color: var(--green); }
+
+pre {
+  background: var(--code-bg);
+  padding: 16px 18px;
+  overflow-x: auto;
+  margin: 0;
+}
+
+code {
+  font-family: 'Consolas', 'Cascadia Code', 'Courier New', monospace;
+  font-size: .84rem;
+  color: var(--cmd);
+  line-height: 1.85;
+}
+
+.cm  { color: var(--comment); font-style: italic; }   /* comment */
+.kw  { color: var(--kw); }                             /* keyword/command */
+.val { color: var(--val); }                            /* value/IP */
+.str { color: var(--str); }                            /* string */
+.hl  { color: var(--yellow); font-weight: 600; }       /* highlight */
+
+/* ════════════════════════════════════════
+   NOTE / WARNING / TIP
+════════════════════════════════════════ */
+.alert {
+  display: flex;
+  gap: 11px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  border-left: 4px solid;
+  margin-bottom: 12px;
+  font-size: .84rem;
+  line-height: 1.55;
+}
+.alert code { font-size: .8rem; color: inherit; opacity: .9; }
+.alert strong { display: block; margin-bottom: 2px; }
+
+.alert-warn {
+  background: rgba(249,226,175,.06);
+  border-color: var(--yellow);
+  color: #e8d4a0;
+}
+.alert-warn strong { color: var(--yellow); }
+
+.alert-info {
+  background: rgba(137,180,250,.06);
+  border-color: var(--accent);
+  color: #b0c8f0;
+}
+.alert-info strong { color: var(--accent); }
+
+.alert-tip {
+  background: rgba(166,227,161,.06);
+  border-color: var(--green);
+  color: #a0d09e;
+}
+.alert-tip strong { color: var(--green); }
+
+.alert-icon { font-size: 1rem; flex-shrink: 0; line-height: 1.55; }
+
+/* ════════════════════════════════════════
+   SHOW COMMANDS GRID
+════════════════════════════════════════ */
+.cmd-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 12px;
+}
+
+.cmd-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.cmd-card-head {
+  padding: 8px 14px;
+  background: var(--surface3);
+  font-size: .72rem;
+  font-weight: 700;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.cmd-card-head .purpose { color: var(--text); font-weight: 600; }
+.cmd-card code { display: block; padding: 10px 14px; font-size: .82rem; color: var(--green); }
+
+/* ════════════════════════════════════════
+   RESPONSIVE — MOBILE
+════════════════════════════════════════ */
+@media (max-width: 780px) {
+  #topbar  { display: flex; }
+  #sidebar {
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    z-index: 160;
+    transform: translateX(-100%);
+  }
+  #sidebar.open { transform: translateX(0); }
+  #overlay.show { display: block; }
+  main {
+    padding: calc(var(--topbar-h) + 24px) 18px 60px;
+    max-width: 100%;
+  }
+  .cmd-grid { grid-template-columns: 1fr; }
+  .topo-table { font-size: .72rem; }
+  .topo-table th, .topo-table td { padding: 7px 10px; }
+  pre { font-size: .78rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR (mobile) ─────────────────── -->
+<div id="topbar">
+  <button id="menu-btn" onclick="toggleSidebar()" aria-label="Menú">☰</button>
+  <h1>Guía CCNA</h1>
+</div>
+<div id="overlay" onclick="toggleSidebar()"></div>
+
+<!-- ── LAYOUT ─────────────────────────── -->
+<div id="layout">
+
+<!-- ── SIDEBAR ────────────────────────── -->
+<nav id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">🌐</div>
+    <div>
+      <div class="sb-logo-text">Guía CCNA</div>
+      <div class="sb-logo-sub">Router-on-a-Stick · VLANs · DHCP</div>
+    </div>
+  </div>
+
+  <div class="sb-section-label">Referencia</div>
+  <a class="sb-link" href="#topo">
+    <span class="sb-num" style="color:var(--muted)">⊞</span>
+    Tabla de Topología
+    <span class="sb-badge b-all">REF</span>
+  </a>
+
+  <div class="sb-section-label">Configuraciones</div>
+
+  <a class="sb-link" href="#s0">
+    <span class="sb-num" style="color:var(--accent)">0</span>
+    Config Base &amp; SSH
+    <span class="sb-badge b-all">ALL</span>
+  </a>
+  <a class="sb-link" href="#s1">
+    <span class="sb-num" style="color:var(--teal)">1</span>
+    Núcleo Capa 2
+    <span class="sb-badge b-sw">SW0</span>
+  </a>
+  <a class="sb-link" href="#s2">
+    <span class="sb-num" style="color:var(--teal)">2</span>
+    Switch Cascada
+    <span class="sb-badge b-sw">SW2</span>
+  </a>
+  <a class="sb-link" href="#s3">
+    <span class="sb-num" style="color:var(--red)">3</span>
+    Router-on-a-Stick + DHCP
+    <span class="sb-badge b-rt">RT2</span>
+  </a>
+  <a class="sb-link" href="#s4">
+    <span class="sb-num" style="color:var(--yellow)">4</span>
+    Telefonía IP
+    <span class="sb-badge b-sw">SW3</span>
+  </a>
+  <a class="sb-link" href="#s5">
+    <span class="sb-num" style="color:var(--lavender)">5</span>
+    Ruta Estática
+    <span class="sb-badge b-rt">RT3</span>
+  </a>
+
+  <div class="sb-section-label" style="margin-top:6px">Verificación</div>
+  <a class="sb-link" href="#s6">
+    <span class="sb-num" style="color:var(--green)">✓</span>
+    Comandos Show
+    <span class="sb-badge b-ver">VER</span>
+  </a>
+</nav>
+
+<!-- ── MAIN ───────────────────────────── -->
+<main>
+
+  <!-- HERO -->
+  <div class="page-hero">
+    <h1>Guía de Laboratorio CCNA</h1>
+    <p>Configuración completa paso a paso para el examen práctico</p>
+    <div class="chips">
+      <span class="chip c-blue">🔀 Router-on-a-Stick</span>
+      <span class="chip c-green">🏷️ VLANs &amp; Trunking</span>
+      <span class="chip c-yellow">📡 DHCP Datos / Voz</span>
+      <span class="chip c-teal">📞 Telefonía IP</span>
+      <span class="chip c-red">➡️ Ruta Estática</span>
+      <span class="chip c-lav">🔐 SSH &amp; Banner</span>
+    </div>
+  </div>
+
+  <!-- ══ TOPOLOGÍA ══════════════════════ -->
+  <div class="topo-card" id="topo">
+    <div class="topo-card-header">
+      📋 Tabla de Topología &amp; Direccionamiento IP
+      <span>Referencia rápida</span>
+    </div>
+    <table class="topo-table">
+      <thead>
+        <tr>
+          <th>Dispositivo</th>
+          <th>Rol</th>
+          <th>Interfaz</th>
+          <th>IP / Máscara</th>
+          <th>VLAN / Modo</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Switch0</td>
+          <td class="role">Núcleo Capa 2</td>
+          <td>VLAN 99 (SVI)</td>
+          <td class="ip-cell">192.168.99.1 /24</td>
+          <td class="vlan-cell">MGMT</td>
+        </tr>
+        <tr>
+          <td>Switch0</td>
+          <td class="role">Núcleo Capa 2</td>
+          <td>Fa0/1 – Fa0/2</td>
+          <td class="ip-cell">—</td>
+          <td class="mode-trunk">Trunk → Routers</td>
+        </tr>
+        <tr>
+          <td>Switch0</td>
+          <td class="role">Núcleo Capa 2</td>
+          <td>Fa0/7</td>
+          <td class="ip-cell">—</td>
+          <td class="mode-trunk">Trunk → SW2</td>
+        </tr>
+        <tr>
+          <td>Switch2</td>
+          <td class="role">Cascada / Acceso</td>
+          <td>VLAN 99 (SVI)</td>
+          <td class="ip-cell">192.168.99.2 /24</td>
+          <td class="vlan-cell">MGMT</td>
+        </tr>
+        <tr>
+          <td>Switch2</td>
+          <td class="role">Cascada / Acceso</td>
+          <td>Fa0/1</td>
+          <td class="ip-cell">—</td>
+          <td class="mode-trunk">Trunk → SW0</td>
+        </tr>
+        <tr>
+          <td>Switch2</td>
+          <td class="role">Cascada / Acceso</td>
+          <td>Fa0/2 – Fa0/5</td>
+          <td class="ip-cell">—</td>
+          <td class="mode-acc">Access VLAN 10</td>
+        </tr>
+        <tr>
+          <td>Switch3</td>
+          <td class="role">Telefonía IP</td>
+          <td>VLAN 99 (SVI)</td>
+          <td class="ip-cell">192.168.99.3 /24</td>
+          <td class="vlan-cell">MGMT</td>
+        </tr>
+        <tr>
+          <td>Switch3</td>
+          <td class="role">Telefonía IP</td>
+          <td>Fa0/1</td>
+          <td class="ip-cell">—</td>
+          <td class="mode-trunk">Trunk → RT2</td>
+        </tr>
+        <tr>
+          <td>Switch3</td>
+          <td class="role">Telefonía IP</td>
+          <td>Fa0/2</td>
+          <td class="ip-cell">—</td>
+          <td class="mode-acc">Access + Voice 20</td>
+        </tr>
+        <tr>
+          <td>Router 2</td>
+          <td class="role">Gateway + DHCP</td>
+          <td>G0/0/0.10</td>
+          <td class="ip-cell">192.168.10.1 /24</td>
+          <td class="vlan-cell">VLAN 10 Datos</td>
+        </tr>
+        <tr>
+          <td>Router 2</td>
+          <td class="role">Gateway + DHCP</td>
+          <td>G0/0/1.20</td>
+          <td class="ip-cell">192.168.20.1 /24</td>
+          <td class="vlan-cell">VLAN 20 Voz</td>
+        </tr>
+        <tr>
+          <td>Router 3</td>
+          <td class="role">Ruta Estática</td>
+          <td>G0/0/0.10</td>
+          <td class="ip-cell">192.168.10.2 /24</td>
+          <td class="vlan-cell">VLAN 10 Datos</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ══ S0 — Config Base ═══════════════ -->
+  <div class="section" id="s0">
+    <div class="sec-header">
+      <div class="step-dot d-blue">0</div>
+      <div class="sec-title">Configuración Base y Acceso Seguro (SSH)</div>
+      <span class="dev-tag tag-all">SW &amp; RT</span>
+    </div>
+    <div class="sec-body">
+      <p class="sec-desc">
+        Plantilla estándar para <strong>cualquier Switch o Router</strong>. Configura hostname, <strong>banner MOTD</strong>, cifrado de contraseñas, seguridad en consola, deshabilita búsquedas DNS y habilita <strong>SSH v2</strong>.
+      </p>
+
+      <div class="code-wrap">
+        <div class="code-bar">
+          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+          <span class="code-label">IOS CLI — Aplicar a cada dispositivo</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+<pre><code><span class="kw">enable</span>
+<span class="kw">configure terminal</span>
+
+<span class="cm">! ─── 1. Identidad del dispositivo ─────────────────────</span>
+<span class="kw">hostname</span> <span class="hl">SW_CORE</span>            <span class="cm">! Cambiar según el dispositivo</span>
+
+<span class="cm">! ─── 2. Contraseña de modo privilegiado (exec secret) ─</span>
+<span class="kw">enable secret</span> <span class="str">Cisco12345</span>
+
+<span class="cm">! ─── 3. Cifrar TODAS las contraseñas en texto plano ───</span>
+<span class="kw">service password-encryption</span>
+
+<span class="cm">! ─── 4. Evitar búsquedas DNS en errores de tipeo ─────</span>
+<span class="kw">no ip domain-lookup</span>
+
+<span class="cm">! ─── 5. Banner MOTD — Aviso legal de acceso ──────────</span>
+<span class="kw">banner motd</span> <span class="str">#
+=========================================
+  ACCESO RESTRINGIDO - USO AUTORIZADO
+  Toda actividad es monitoreada y
+  registrada. Desconectese si no tiene
+  autorizacion expresa.
+=========================================
+#</span>
+
+<span class="cm">! ─── 6. Seguridad en la consola física ───────────────</span>
+<span class="kw">line con 0</span>
+ <span class="kw">login local</span>
+ <span class="kw">logging synchronous</span>   <span class="cm">! Evita que los logs interrumpan el tipeo</span>
+ <span class="kw">exec-timeout</span> <span class="val">5 0</span>       <span class="cm">! Cierra sesión tras 5 min de inactividad</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 7. Deshabilitar puerto auxiliar (seguridad) ─────</span>
+<span class="kw">line aux 0</span>
+ <span class="kw">no exec</span>
+ <span class="kw">transport input none</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 8. Requisitos SSH: dominio + llaves RSA ─────────</span>
+<span class="kw">ip domain-name</span> <span class="str">empresa.local</span>
+<span class="kw">crypto key generate rsa modulus</span> <span class="val">2048</span>
+
+<span class="cm">! ─── 9. Usuario local con máximos privilegios ────────</span>
+<span class="kw">username</span> <span class="str">admin</span> <span class="kw">privilege</span> <span class="val">15</span> <span class="kw">secret</span> <span class="str">AdminPass99</span>
+
+<span class="cm">! ─── 10. Forzar SSH versión 2 (más seguro) ───────────</span>
+<span class="kw">ip ssh version</span> <span class="val">2</span>
+<span class="kw">ip ssh time-out</span> <span class="val">60</span>
+<span class="kw">ip ssh authentication-retries</span> <span class="val">3</span>
+
+<span class="cm">! ─── 11. Líneas VTY — Solo SSH, sin Telnet ───────────</span>
+<span class="kw">line vty 0 4</span>
+ <span class="kw">login local</span>
+ <span class="kw">transport input ssh</span>
+ <span class="kw">logging synchronous</span>
+ <span class="kw">exec-timeout</span> <span class="val">10 0</span>
+ <span class="kw">exit</span>
+
+<span class="kw">end</span>
+<span class="kw">write memory</span></code></pre>
+      </div>
+
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <strong>Banner MOTD</strong>
+          El texto entre los dos <code>#</code> es el aviso legal. Se muestra <em>antes</em> del login. Usar un delimitador que NO aparezca en el texto del mensaje.
+        </div>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+          <strong>no ip domain-lookup</strong>
+          Sin este comando, si escribes mal un comando (ej: <code>enabel</code>), el router intentará resolverlo como nombre DNS y se colgará ~30 segundos antes de regresar el prompt.
+        </div>
+      </div>
+      <div class="alert alert-tip">
+        <span class="alert-icon">✅</span>
+        <div>
+          <strong>logging synchronous</strong>
+          Sincroniza los mensajes de log con el prompt. Sin esto, los mensajes de consola aparecen en medio de lo que estás escribiendo, causando confusión.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S1 — Switch0 Núcleo ═══════════ -->
+  <div class="section" id="s1">
+    <div class="sec-header">
+      <div class="step-dot d-teal">1</div>
+      <div class="sec-title">Configuración del Núcleo de Capa 2 (Switch0)</div>
+      <span class="dev-tag tag-sw">Switch0</span>
+    </div>
+    <div class="sec-body">
+      <p class="sec-desc">
+        El switch central crea las VLANs de <strong>Datos (10)</strong>, <strong>Voz (20)</strong> y <strong>Gestión (99)</strong>. Configura una <strong>SVI de administración</strong> y todos los puertos uplink en modo <strong>Trunk</strong> con DTP deshabilitado.
+      </p>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+          <span class="code-label">IOS CLI — Switch0 (Núcleo)</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+<pre><code><span class="kw">enable</span>
+<span class="kw">configure terminal</span>
+
+<span class="cm">! ─── 1. Crear VLANs ───────────────────────────────────</span>
+<span class="kw">vlan</span> <span class="val">10</span>
+ <span class="kw">name</span> <span class="str">VLAN_DATOS</span>
+ <span class="kw">exit</span>
+<span class="kw">vlan</span> <span class="val">20</span>
+ <span class="kw">name</span> <span class="str">VLAN_VOZ</span>
+ <span class="kw">exit</span>
+<span class="kw">vlan</span> <span class="val">99</span>
+ <span class="kw">name</span> <span class="str">VLAN_MGMT</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 2. SVI de administración remota (VLAN 99) ────────</span>
+<span class="kw">interface vlan</span> <span class="val">99</span>
+ <span class="kw">description</span> <span class="str">GESTION_SW0</span>
+ <span class="kw">ip address</span> <span class="val">192.168.99.1 255.255.255.0</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 3. Gateway por defecto (para acceso desde otras redes)</span>
+<span class="kw">ip default-gateway</span> <span class="val">192.168.99.254</span>
+
+<span class="cm">! ─── 4. Trunks hacia los Routers (Fa0/1 y Fa0/2) ─────</span>
+<span class="kw">interface range FastEthernet0/1 - 2</span>
+ <span class="kw">description</span> <span class="str">TRUNK_HACIA_ROUTER</span>
+ <span class="kw">switchport mode trunk</span>
+ <span class="kw">switchport trunk native vlan</span> <span class="val">99</span>
+ <span class="kw">switchport trunk allowed vlan</span> <span class="val">10,20,99</span>
+ <span class="kw">switchport nonegotiate</span>       <span class="cm">! Deshabilita DTP (no negocia trunk)</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 5. Trunk hacia el Switch Cascada (Fa0/7) ─────────</span>
+<span class="kw">interface FastEthernet0/7</span>
+ <span class="kw">description</span> <span class="str">TRUNK_HACIA_SW2</span>
+ <span class="kw">switchport mode trunk</span>
+ <span class="kw">switchport trunk native vlan</span> <span class="val">99</span>
+ <span class="kw">switchport trunk allowed vlan</span> <span class="val">10,20,99</span>
+ <span class="kw">switchport nonegotiate</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="kw">end</span>
+<span class="kw">write memory</span></code></pre>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+          <strong>switchport nonegotiate</strong>
+          Desactiva el protocolo DTP (Dynamic Trunking Protocol). Siempre usarlo en puertos trunk para evitar ataques de VLAN hopping y acelerar la negociación.
+        </div>
+      </div>
+      <div class="alert alert-tip">
+        <span class="alert-icon">✅</span>
+        <div>
+          <strong>ip default-gateway</strong>
+          Los switches Capa 2 no enrutan. Sin este comando no podrás hacer SSH al switch desde una red diferente a la VLAN 99.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S2 — Switch2 Cascada ══════════ -->
+  <div class="section" id="s2">
+    <div class="sec-header">
+      <div class="step-dot d-teal">2</div>
+      <div class="sec-title">Switch en Cascada y Acceso a PCs (Switch2)</div>
+      <span class="dev-tag tag-sw">Switch2</span>
+    </div>
+    <div class="sec-body">
+      <p class="sec-desc">
+        El switch secundario recibe el Trunk del núcleo y asigna puertos de PCs en modo <strong>Access VLAN 10</strong>. Se activa <strong>PortFast</strong> en puertos de acceso para acelerar la convergencia STP.
+      </p>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+          <span class="code-label">IOS CLI — Switch2 (Cascada)</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+<pre><code><span class="kw">enable</span>
+<span class="kw">configure terminal</span>
+
+<span class="cm">! ─── 1. Crear VLANs necesarias ────────────────────────</span>
+<span class="kw">vlan</span> <span class="val">10</span>
+ <span class="kw">name</span> <span class="str">VLAN_DATOS</span>
+ <span class="kw">exit</span>
+<span class="kw">vlan</span> <span class="val">99</span>
+ <span class="kw">name</span> <span class="str">VLAN_MGMT</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 2. SVI de administración ─────────────────────────</span>
+<span class="kw">interface vlan</span> <span class="val">99</span>
+ <span class="kw">description</span> <span class="str">GESTION_SW2</span>
+ <span class="kw">ip address</span> <span class="val">192.168.99.2 255.255.255.0</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="kw">ip default-gateway</span> <span class="val">192.168.99.254</span>
+
+<span class="cm">! ─── 3. Trunk hacia el Switch0 ────────────────────────</span>
+<span class="kw">interface FastEthernet0/1</span>
+ <span class="kw">description</span> <span class="str">TRUNK_HACIA_SW0</span>
+ <span class="kw">switchport mode trunk</span>
+ <span class="kw">switchport trunk native vlan</span> <span class="val">99</span>
+ <span class="kw">switchport trunk allowed vlan</span> <span class="val">10,99</span>
+ <span class="kw">switchport nonegotiate</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 4. Puertos de acceso para las PCs ────────────────</span>
+<span class="kw">interface range FastEthernet0/2 - 5</span>
+ <span class="kw">description</span> <span class="str">ACCESO_PC_USUARIO</span>
+ <span class="kw">switchport mode access</span>
+ <span class="kw">switchport access vlan</span> <span class="val">10</span>
+ <span class="kw">spanning-tree portfast</span>      <span class="cm">! Salta los estados STP (solo en puertos de host)</span>
+ <span class="kw">spanning-tree bpduguard enable</span> <span class="cm">! Apaga el puerto si recibe BPDU (seguridad)</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="kw">end</span>
+<span class="kw">write memory</span></code></pre>
+      </div>
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <strong>spanning-tree portfast</strong>
+          Solo usar en puertos conectados a dispositivos finales (PCs, impresoras). <strong>Nunca</strong> en puertos trunk o conectados a switches, ya que podría crear loops en la red.
+        </div>
+      </div>
+      <div class="alert alert-tip">
+        <span class="alert-icon">✅</span>
+        <div>
+          <strong>bpduguard enable</strong>
+          Complemento obligatorio de PortFast. Si alguien conecta un switch no autorizado al puerto de acceso, este se desactiva automáticamente (error-disabled), protegiendo la topología STP.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S3 — Router2 RoaS + DHCP ══════ -->
+  <div class="section" id="s3">
+    <div class="sec-header">
+      <div class="step-dot d-red">3</div>
+      <div class="sec-title">Router-on-a-Stick y Servidor DHCP (Router 2)</div>
+      <span class="dev-tag tag-rt">Router 2</span>
+    </div>
+    <div class="sec-body">
+      <p class="sec-desc">
+        Router 2 actúa como <strong>Gateway inter-VLAN</strong> mediante subinterfaces (dot1Q) y como <strong>servidor DHCP</strong> para la red de Datos (VLAN 10) y la red de Voz (VLAN 20) con la opción 150 para telefonía IP.
+      </p>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+          <span class="code-label">IOS CLI — Router 2 (Gateway + DHCP)</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+<pre><code><span class="kw">enable</span>
+<span class="kw">configure terminal</span>
+
+<span class="cm">! ─── 1. Activar interfaz física de Datos ──────────────</span>
+<span class="kw">interface GigabitEthernet0/0/0</span>
+ <span class="kw">description</span> <span class="str">ENLACE_VLAN_DATOS</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 2. Subinterfaz para VLAN 10 (Datos) ─────────────</span>
+<span class="kw">interface GigabitEthernet0/0/0.10</span>
+ <span class="kw">description</span> <span class="str">GATEWAY_VLAN10_DATOS</span>
+ <span class="kw">encapsulation dot1Q</span> <span class="val">10</span>
+ <span class="kw">ip address</span> <span class="val">192.168.10.1 255.255.255.0</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 3. Activar interfaz física de Voz ───────────────</span>
+<span class="kw">interface GigabitEthernet0/0/1</span>
+ <span class="kw">description</span> <span class="str">ENLACE_VLAN_VOZ</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 4. Subinterfaz para VLAN 20 (Voz) ───────────────</span>
+<span class="kw">interface GigabitEthernet0/0/1.20</span>
+ <span class="kw">description</span> <span class="str">GATEWAY_VLAN20_VOZ</span>
+ <span class="kw">encapsulation dot1Q</span> <span class="val">20</span>
+ <span class="kw">ip address</span> <span class="val">192.168.20.1 255.255.255.0</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 5. DHCP — Excluir IPs reservadas ─────────────────</span>
+<span class="cm">! (Gateways, servidores e impresoras van aquí)</span>
+<span class="kw">ip dhcp excluded-address</span> <span class="val">192.168.10.1 192.168.10.10</span>
+<span class="kw">ip dhcp excluded-address</span> <span class="val">192.168.20.1 192.168.20.10</span>
+
+<span class="cm">! ─── 6. Pool DHCP para red de Datos (VLAN 10) ─────────</span>
+<span class="kw">ip dhcp pool</span> <span class="str">POOL_DATOS</span>
+ <span class="kw">network</span> <span class="val">192.168.10.0 255.255.255.0</span>
+ <span class="kw">default-router</span> <span class="val">192.168.10.1</span>
+ <span class="kw">dns-server</span> <span class="val">8.8.8.8 8.8.4.4</span>
+ <span class="kw">domain-name</span> <span class="str">empresa.local</span>
+ <span class="kw">lease</span> <span class="val">7</span>                  <span class="cm">! Tiempo de arrendamiento: 7 días</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 7. Pool DHCP para red de Voz (VLAN 20) ──────────</span>
+<span class="kw">ip dhcp pool</span> <span class="str">POOL_VOZ</span>
+ <span class="kw">network</span> <span class="val">192.168.20.0 255.255.255.0</span>
+ <span class="kw">default-router</span> <span class="val">192.168.20.1</span>
+ <span class="kw">dns-server</span> <span class="val">8.8.8.8</span>
+ <span class="kw">option 150 ip</span> <span class="val">192.168.20.1</span>  <span class="cm">! Dirección del servidor TFTP para IP Phones</span>
+ <span class="kw">lease</span> <span class="val">1</span>                  <span class="cm">! Los teléfonos renuevan cada día</span>
+ <span class="kw">exit</span>
+
+<span class="kw">end</span>
+<span class="kw">write memory</span></code></pre>
+      </div>
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <strong>encapsulation dot1Q [vlan-id]</strong>
+          Este comando es obligatorio en la subinterfaz <em>antes</em> de asignar la IP. Le indica al router qué VLAN etiqueta debe leer/escribir en esa subinterfaz. Sin él, el router no procesa el tráfico etiquetado.
+        </div>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+          <strong>option 150</strong>
+          Es la opción DHCP propietaria de Cisco para Telefonía IP. Le dice al teléfono la IP del servidor TFTP donde descargar su archivo de configuración y firmware al arrancar.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S4 — Switch3 Telefonía ════════ -->
+  <div class="section" id="s4">
+    <div class="sec-header">
+      <div class="step-dot d-yellow">4</div>
+      <div class="sec-title">Configuración de Telefonía IP (Switch3)</div>
+      <span class="dev-tag tag-sw">Switch3</span>
+    </div>
+    <div class="sec-body">
+      <p class="sec-desc">
+        El switch de telefonía gestiona la <strong>Voice VLAN 20</strong>. El puerto conectado al teléfono opera en modo <strong>Access + Voice VLAN</strong>: la PC pasa sin etiquetar (datos) y el teléfono etiqueta su tráfico como VLAN 20.
+      </p>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+          <span class="code-label">IOS CLI — Switch3 (Telefonía IP)</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+<pre><code><span class="kw">enable</span>
+<span class="kw">configure terminal</span>
+
+<span class="cm">! ─── 1. Crear VLANs ───────────────────────────────────</span>
+<span class="kw">vlan</span> <span class="val">20</span>
+ <span class="kw">name</span> <span class="str">VLAN_VOZ</span>
+ <span class="kw">exit</span>
+<span class="kw">vlan</span> <span class="val">99</span>
+ <span class="kw">name</span> <span class="str">VLAN_MGMT</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 2. SVI de administración ─────────────────────────</span>
+<span class="kw">interface vlan</span> <span class="val">99</span>
+ <span class="kw">description</span> <span class="str">GESTION_SW3</span>
+ <span class="kw">ip address</span> <span class="val">192.168.99.3 255.255.255.0</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="kw">ip default-gateway</span> <span class="val">192.168.99.254</span>
+
+<span class="cm">! ─── 3. Trunk hacia el Router 2 ───────────────────────</span>
+<span class="kw">interface FastEthernet0/1</span>
+ <span class="kw">description</span> <span class="str">TRUNK_HACIA_RT2</span>
+ <span class="kw">switchport mode trunk</span>
+ <span class="kw">switchport trunk native vlan</span> <span class="val">99</span>
+ <span class="kw">switchport trunk allowed vlan</span> <span class="val">20,99</span>
+ <span class="kw">switchport nonegotiate</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 4. Puerto hacia el Teléfono IP ───────────────────</span>
+<span class="cm">! El teléfono actúa como mini-switch: PC conecta al teléfono</span>
+<span class="kw">interface FastEthernet0/2</span>
+ <span class="kw">description</span> <span class="str">TELEFONO_IP_CISCO</span>
+ <span class="kw">switchport mode access</span>
+ <span class="kw">switchport access vlan</span> <span class="val">10</span>    <span class="cm">! VLAN de datos para la PC detrás del teléfono</span>
+ <span class="kw">switchport voice vlan</span> <span class="val">20</span>    <span class="cm">! VLAN de voz etiquetada para el teléfono</span>
+ <span class="kw">spanning-tree portfast</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="kw">end</span>
+<span class="kw">write memory</span></code></pre>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+          <strong>switchport access vlan + switchport voice vlan</strong>
+          Un mismo puerto puede manejar dos VLANs: la <code>access vlan</code> para datos de la PC (sin etiqueta) y la <code>voice vlan</code> para el teléfono (etiquetada con 802.1p/CoS). Cisco llama a esto "puerto multivlan".
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S5 — Router3 Ruta Estática ════ -->
+  <div class="section" id="s5">
+    <div class="sec-header">
+      <div class="step-dot d-lav">5</div>
+      <div class="sec-title">Enrutamiento Estático (Router 3)</div>
+      <span class="dev-tag tag-rt">Router 3</span>
+    </div>
+    <div class="sec-body">
+      <p class="sec-desc">
+        Router 3 está conectado a la <strong>VLAN 10</strong>. Para alcanzar la red de Voz (<strong>VLAN 20</strong>) necesita una ruta estática hacia Router 2, quien sí conoce esa red.
+      </p>
+      <div class="code-wrap">
+        <div class="code-bar">
+          <div class="dots"><div class="dot dot-r"></div><div class="dot dot-y"></div><div class="dot dot-g"></div></div>
+          <span class="code-label">IOS CLI — Router 3 (Ruta Estática)</span>
+          <button class="copy-btn" onclick="copyCode(this)">📋 Copiar</button>
+        </div>
+<pre><code><span class="kw">enable</span>
+<span class="kw">configure terminal</span>
+
+<span class="cm">! ─── 1. Activar interfaz física ───────────────────────</span>
+<span class="kw">interface GigabitEthernet0/0/0</span>
+ <span class="kw">description</span> <span class="str">ENLACE_VLAN_DATOS</span>
+ <span class="kw">no shutdown</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 2. Subinterfaz VLAN 10 ───────────────────────────</span>
+<span class="kw">interface GigabitEthernet0/0/0.10</span>
+ <span class="kw">description</span> <span class="str">INTERFAZ_VLAN10</span>
+ <span class="kw">encapsulation dot1Q</span> <span class="val">10</span>
+ <span class="kw">ip address</span> <span class="val">192.168.10.2 255.255.255.0</span>
+ <span class="kw">exit</span>
+
+<span class="cm">! ─── 3. Ruta Estática hacia la red de Voz ─────────────</span>
+<span class="cm">! Sintaxis: ip route [Red Destino] [Máscara] [Next-Hop / IP del vecino]</span>
+<span class="cm">!                                              ↓ IP de RT2 en VLAN 10</span>
+<span class="kw">ip route</span> <span class="val">192.168.20.0 255.255.255.0</span> <span class="hl">192.168.10.1</span>
+
+<span class="cm">! ─── 4. Ruta estática por defecto (opcional / a Internet)</span>
+<span class="cm">! ip route 0.0.0.0 0.0.0.0 192.168.10.1</span>
+
+<span class="kw">end</span>
+<span class="kw">write memory</span></code></pre>
+      </div>
+      <div class="alert alert-info">
+        <span class="alert-icon">💡</span>
+        <div>
+          <strong>Sintaxis de ip route</strong><br>
+          <code>ip route [red-destino] [máscara] [next-hop]</code><br>
+          El <em>next-hop</em> es la IP del router vecino que <strong>sí conoce</strong> la red destino, no la IP de la interfaz local.
+        </div>
+      </div>
+      <div class="alert alert-warn">
+        <span class="alert-icon">⚠️</span>
+        <div>
+          <strong>Rutas en ambos sentidos</strong>
+          Si Router 2 también necesita llegar a redes que solo conoce Router 3, deberás agregar la ruta inversa en Router 2 también. El enrutamiento es bidireccional.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S6 — Verificación ══════════════ -->
+  <div class="section" id="s6">
+    <div class="sec-header">
+      <div class="step-dot d-green">✓</div>
+      <div class="sec-title">Comandos de Verificación (show)</div>
+      <span class="dev-tag tag-ver">VERIFICAR</span>
+    </div>
+    <div class="sec-body">
+      <p class="sec-desc">
+        Usa estos comandos para validar cada configuración. Apréndetelos: son los más preguntados en el examen práctico.
+      </p>
+
+      <div class="cmd-grid">
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Switch &amp; Router
+            <span class="purpose">Ver interfaces y estado IP</span>
+          </div>
+          <code>show ip interface brief</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Switch
+            <span class="purpose">Verificar VLANs creadas y puertos</span>
+          </div>
+          <code>show vlan brief</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Switch
+            <span class="purpose">Ver trunks activos y VLANs permitidas</span>
+          </div>
+          <code>show interfaces trunk</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Switch
+            <span class="purpose">Ver modo de una interfaz específica</span>
+          </div>
+          <code>show interfaces Fa0/1 switchport</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Switch
+            <span class="purpose">Estado de Spanning Tree por VLAN</span>
+          </div>
+          <code>show spanning-tree vlan 10</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Switch
+            <span class="purpose">Ver errores / puertos en error-disabled</span>
+          </div>
+          <code>show interfaces status</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Router
+            <span class="purpose">Ver tabla de enrutamiento completa</span>
+          </div>
+          <code>show ip route</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Router
+            <span class="purpose">Ver solo rutas estáticas</span>
+          </div>
+          <code>show ip route static</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Router
+            <span class="purpose">Ver pools DHCP y direcciones asignadas</span>
+          </div>
+          <code>show ip dhcp binding</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Router
+            <span class="purpose">Ver conflictos y estadísticas DHCP</span>
+          </div>
+          <code>show ip dhcp pool</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Router
+            <span class="purpose">Ver subinterfaces y encapsulación</span>
+          </div>
+          <code>show interfaces G0/0/0.10</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            Router
+            <span class="purpose">Ver versión IOS y hardware</span>
+          </div>
+          <code>show version</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            SW &amp; RT
+            <span class="purpose">Ver configuración activa completa</span>
+          </div>
+          <code>show running-config</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            SW &amp; RT
+            <span class="purpose">Ver solo la sección de interfaces</span>
+          </div>
+          <code>show running-config | section interface</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            SW &amp; RT
+            <span class="purpose">Ver usuarios SSH conectados</span>
+          </div>
+          <code>show ssh</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            SW &amp; RT
+            <span class="purpose">Probar conectividad básica</span>
+          </div>
+          <code>ping 192.168.10.1</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            SW &amp; RT
+            <span class="purpose">Trazar ruta hacia destino</span>
+          </div>
+          <code>traceroute 192.168.20.1</code>
+        </div>
+
+        <div class="cmd-card">
+          <div class="cmd-card-head">
+            SW &amp; RT
+            <span class="purpose">Ver vecinos Cisco conectados (CDP)</span>
+          </div>
+          <code>show cdp neighbors detail</code>
+        </div>
+
+      </div>
+
+      <div class="alert alert-tip" style="margin-top:16px">
+        <span class="alert-icon">✅</span>
+        <div>
+          <strong>Tip de examen</strong>
+          Usa <code>show running-config | include [término]</code> para buscar configuraciones específicas. Ejemplo: <code>show running-config | include vlan</code> muestra solo las líneas con la palabra "vlan".
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+</div><!-- #layout -->
+
+<script>
+/* ── Sidebar toggle (mobile) ── */
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const ov = document.getElementById('overlay');
+  sb.classList.toggle('open');
+  ov.classList.toggle('show');
+}
+
+/* ── Copy code ── */
+function copyCode(btn) {
+  const pre = btn.closest('.code-wrap').querySelector('pre');
+  // Extract only text, strip HTML tags
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Copiar';
+      btn.classList.remove('copied');
+    }, 2000);
+  }).catch(() => {
+    // Fallback
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 Copiar';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+/* ── Active nav link on scroll ── */
+const sections = document.querySelectorAll('.section, .topo-card');
+const links    = document.querySelectorAll('.sb-link');
+
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const id = e.target.id;
+      links.forEach(a => {
+        a.classList.toggle('active', a.getAttribute('href') === '#' + id);
+      });
+    }
+  });
+}, { threshold: 0.25, rootMargin: '-10% 0px -60% 0px' });
+
+sections.forEach(s => io.observe(s));
+</script>
+
+</body>
+</html>
