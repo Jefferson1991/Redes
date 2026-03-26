@@ -1,63 +1,54 @@
-# ============================================================
-# main.py — Menú principal (Switch + Routers)
-# ============================================================
-# Ejecutar: python main.py
-# Requisito: VPN AnyConnect del sandbox activa
+from netmiko import ConnectHandler
+from consola import ConsolaRouter
+from config import SWITCH, ROUTER1, DEVBOX
+from config import COMANDOS_SWITCH, COMANDOS_ROUTER1, COMANDOS_ROUTER2
+import time
 
-import sys
-from switch import configurar_switch
-from routers import conectar_router1, conectar_router2, configurar, validar_ping
-from config import COMANDOS_ROUTER1, COMANDOS_ROUTER2
+def configurar(conexion, comandos, nombre):
+    print(f"[*] Configurando {nombre}...")
+    conexion.send_config_set(comandos)
+    conexion.save_config()
+    print(f"[+] {nombre} listo.")
 
+print("=== Automatización de Red — VPN AnyConnect requerida ===\n")
+print("1. Solo Switch")
+print("2. Solo Routers")
+print("3. Todo")
+opcion = input("\nOpción (1-3): ").strip()
 
-def main():
-    print("=== Automatización de Infraestructura de Red ===")
-    print("REQUISITO: VPN AnyConnect del sandbox activa.\n")
-    print("¿Qué desea configurar?")
-    print("  1. Solo Switch Nexus 9K       → python switch.py")
-    print("  2. Solo Routers (R1 y R2)     → python routers.py")
-    print("  3. Todo (Switch + Routers + ping de validación)")
+conexiones = {}
 
-    opcion = input("\nSeleccione opción (1-3): ").strip()
+if opcion in ('1', '3'):
+    try:
+        c = ConnectHandler(**SWITCH)
+        configurar(c, COMANDOS_SWITCH, "Switch Nexus")
+        conexiones['switch'] = c
+    except Exception as e:
+        print(f"[-] Switch: {e}")
 
-    if opcion == '1':
-        configurar_switch()
+if opcion in ('2', '3'):
+    try:
+        c = ConnectHandler(**ROUTER1)
+        configurar(c, COMANDOS_ROUTER1, "Router 1")
+        conexiones['r1'] = c
+    except Exception as e:
+        print(f"[-] Router 1: {e}")
 
-    elif opcion == '2':
-        r1 = conectar_router1()
-        r2 = conectar_router2()
-        if r1:
-            configurar(r1, "Router 1", COMANDOS_ROUTER1)
-        if r2:
-            configurar(r2, "Router 2", COMANDOS_ROUTER2)
-        if r1 and r2:
-            validar_ping(r2)
-        if r1:
-            r1.disconnect()
-        if r2:
-            r2.disconnect()
+    try:
+        c = ConsolaRouter(DEVBOX, puerto=2223, usuario='developer', clave='C1sco12345')
+        configurar(c, COMANDOS_ROUTER2, "Router 2")
+        conexiones['r2'] = c
+    except Exception as e:
+        print(f"[-] Router 2: {e}")
 
-    elif opcion == '3':
-        configurar_switch()
-        r1 = conectar_router1()
-        r2 = conectar_router2()
-        if r1:
-            configurar(r1, "Router 1", COMANDOS_ROUTER1)
-        if r2:
-            configurar(r2, "Router 2", COMANDOS_ROUTER2)
-        if r1 and r2:
-            validar_ping(r2)
-        if r1:
-            r1.disconnect()
-        if r2:
-            r2.disconnect()
+# Ping de validación (solo si ambos routers están activos)
+if 'r1' in conexiones and 'r2' in conexiones:
+    print("\n[*] Validando conectividad (ping R2 → R1)...")
+    time.sleep(5)
+    resultado = conexiones['r2'].send_command("ping 192.168.10.1 source GigabitEthernet1.10")
+    print(resultado)
 
-    else:
-        print("[-] Opción inválida. Saliendo...")
-        sys.exit(1)
+for c in conexiones.values():
+    c.disconnect()
 
-    print("\n¡Despliegue finalizado exitosamente!")
-
-
-if __name__ == '__main__':
-    main()
+print("\n¡Listo!")
