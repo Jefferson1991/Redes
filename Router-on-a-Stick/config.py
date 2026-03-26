@@ -71,11 +71,16 @@ COMANDOS_R1 = [
 # COMANDOS PARA EL SWITCH SW1
 # =========================
 #
-# Este switch:
+# Topología CML (según diagrama del lab):
+#   R1 E0/0  <-->  SW1 E0/2   (trunk Router-on-a-Stick)
+#   SW1 E0/0 <-->  PC1        (access VLAN 10)
+#   SW1 E0/1 <-->  PC2        (access VLAN 20)
+#   SW1 E0/3     gestión CML  (no usar como access de datos si ya está en mgmt)
+#
 # - Crea VLAN 10/20/30/99
-# - Configura el puerto hacia router (Ethernet0/0) como trunk
-# - Deja puertos de ejemplo como access
-# - Configura SVI VLAN 99 para gestión
+# - Trunk en Ethernet0/2 hacia R1 (no en E0/0)
+# - E0/0/E0/1 access para PC1/PC2
+# - SVI VLAN 99 para IP del switch en la red de gestión
 #
 COMANDOS_SW1 = [
     'hostname SW1',  # Define el nombre del switch
@@ -94,32 +99,27 @@ COMANDOS_SW1 = [
     'name GESTION',  # Nombre de la VLAN 99
     'exit',  # Sale de modo VLAN
 
-    # Trunk hacia router (Router-on-a-Stick)
-    'interface Ethernet0/0',  # Puerto físico hacia el router
+    # PC1 (diagrama: E0/0 -> VLAN 10)
+    'interface Ethernet0/0',  # Puerto hacia PC1
+    'switchport mode access',  # Define modo access
+    'switchport access vlan 10',  # VLAN Compras
+    'no shutdown',  # Activa el puerto
+    'exit',  # Sale del puerto
+
+    # PC2 (diagrama: E0/1 -> VLAN 20)
+    'interface Ethernet0/1',  # Puerto hacia PC2
+    'switchport mode access',  # Define modo access
+    'switchport access vlan 20',  # VLAN Ventas
+    'no shutdown',  # Activa el puerto
+    'exit',  # Sale del puerto
+
+    # Trunk hacia R1 E0/0 (diagrama: SW1 E0/2 <--> R1 E0/0)
+    'interface Ethernet0/2',  # Puerto físico hacia el router (Router-on-a-Stick)
     'switchport trunk encapsulation dot1q',  # Encapsulación del trunk
     'switchport mode trunk',  # Cambia el puerto a trunk
     'switchport trunk allowed vlan 10,20,30,99',  # VLANs permitidas en el trunk
     'switchport nonegotiate',  # Evita negociación DTP
     'no shutdown',  # Activa el trunk
-    'exit',  # Sale del puerto
-
-    # Puertos de ejemplo (ajusta según tu topología)
-    'interface Ethernet0/1',  # Puerto de ejemplo (Compras)
-    'switchport mode access',  # Define modo access
-    'switchport access vlan 10',  # Asigna VLAN 10 al puerto
-    'no shutdown',  # Activa el puerto
-    'exit',  # Sale del puerto
-
-    'interface Ethernet0/2',  # Puerto de ejemplo (Ventas)
-    'switchport mode access',  # Define modo access
-    'switchport access vlan 20',  # Asigna VLAN 20 al puerto
-    'no shutdown',  # Activa el puerto
-    'exit',  # Sale del puerto
-
-    'interface Ethernet0/3',  # Puerto de ejemplo (Inventario)
-    'switchport mode access',  # Define modo access
-    'switchport access vlan 30',  # Asigna VLAN 30 al puerto
-    'no shutdown',  # Activa el puerto
     'exit',  # Sale del puerto
 
     # Gestión del switch (SVI)

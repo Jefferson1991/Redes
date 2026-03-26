@@ -1,10 +1,9 @@
 # Requisito: VPN activa antes de ejecutar
 #
-# Topología real del sandbox:
-#   R1  — Eth0/0: 10.10.10.100  Eth0/1: 1.1.1.1 (enlace a R2)
-#   R2  — Eth0/0: 20.20.20.100  Eth0/1: 1.1.1.2 (enlace a R1)
-#   SW1 — Eth0/0: vlan10  Eth0/1: vlan20  Eth0/2: vlan10
-#   SW2 — igual que SW1
+# Topología CML (sandbox):
+#   R1 E0/0 <--> SW1 E0/2 (trunk Router-on-a-Stick)
+#   R1 E0/1 <--> R2 E0/2
+#   SW1 E0/0 -> PC1 (VLAN 10), SW1 E0/1 -> PC2 (VLAN 20)
 
 
 
@@ -61,24 +60,23 @@ COMANDOS_SW1 = [
     'vlan 99',
     'name GESTION',
     'exit',
-    # Trunk hacia router
+    # PC1 / PC2 (según diagrama)
     'interface Ethernet0/0',
-    'switchport trunk encapsulation dot1q',
-    'switchport mode trunk',
-    'switchport trunk allowed vlan 10,20,99',
-    'switchport nonegotiate',
-    'no shutdown',
-    'exit',
-    # Puerto de ejemplo para Compras
-    'interface Ethernet0/1',
     'switchport mode access',
     'switchport access vlan 10',
     'no shutdown',
     'exit',
-    # Puerto de ejemplo para Ventas
-    'interface Ethernet0/2',
+    'interface Ethernet0/1',
     'switchport mode access',
     'switchport access vlan 20',
+    'no shutdown',
+    'exit',
+    # Trunk hacia R1 E0/0
+    'interface Ethernet0/2',
+    'switchport trunk encapsulation dot1q',
+    'switchport mode trunk',
+    'switchport trunk allowed vlan 10,20,99',
+    'switchport nonegotiate',
     'no shutdown',
     'exit',
     # Gestión del switch
