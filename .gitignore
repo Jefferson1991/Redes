@@ -1,0 +1,4 @@
+# Bytecode de Python (no afecta el código fuente)
+__pycache__/
+*.py[cod]
+*$py.class
