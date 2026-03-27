@@ -26,6 +26,7 @@
     }
     h1 { font-size: 1.35rem; margin-top: 0; border-bottom: 2px solid var(--accent); padding-bottom: 0.35rem; }
     h2 { font-size: 1.1rem; margin-top: 1.75rem; color: #222; }
+    h2.print-break { margin-top: 2rem; }
     p, li { color: var(--muted); font-size: 0.95rem; }
     .meta { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.25rem; }
     .card {
@@ -35,6 +36,7 @@
       padding: 1rem 1.1rem;
       margin: 1rem 0;
     }
+    .card h2 { margin-top: 0; }
     table { width: 100%; border-collapse: collapse; font-size: 0.88rem; margin: 0.5rem 0; }
     th, td { border: 1px solid var(--border); padding: 0.4rem 0.5rem; text-align: left; }
     th { background: #eee; }
@@ -49,6 +51,7 @@
       line-height: 1.35;
       white-space: pre;
       font-family: Consolas, "Courier New", monospace;
+      tab-size: 4;
     }
     .file-label {
       font-family: Consolas, monospace;
@@ -56,6 +59,7 @@
       font-weight: 600;
       color: var(--accent);
       margin-bottom: 0.35rem;
+      margin-top: 0.5rem;
     }
     .print-hint {
       background: #e7f1ff;
@@ -64,247 +68,330 @@
       font-size: 0.88rem;
       margin: 1rem 0;
     }
+    .print-footer { display: none; }
+    .code-wrap { margin: 0.75rem 0 1.25rem; }
+
+    @page { size: A4 portrait; margin: 8mm 10mm 10mm 10mm; }
     @media print {
-      body { background: #fff; max-width: 100%; padding: 0.5cm; }
-      .print-hint { border: 1px solid #999; background: #f5f5f5; }
-      pre { font-size: 6.5pt; page-break-inside: avoid; }
-      h2 { page-break-after: avoid; }
-      .card { border: 1px solid #999; page-break-inside: avoid; }
-      a[href^="http"]::after { content: ""; }
+      html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+      body { background: #fff !important; color: #000 !important; max-width: 100%; padding: 0; font-size: 9pt; line-height: 1.3; }
+      h1 { font-size: 14pt; border-bottom: 2pt solid #000; padding-bottom: 3pt; margin-bottom: 6pt; page-break-after: avoid; }
+      h2 { color: #000 !important; font-size: 10pt; margin-top: 8pt; page-break-after: avoid; }
+      h2.print-break { page-break-before: auto; margin-top: 10pt; padding-top: 8pt; border-top: 1pt solid #999; border-bottom: 1pt solid #333; padding-bottom: 3pt; }
+      p, li, .meta { color: #222 !important; font-size: 8.5pt; }
+      .screen-only { display: none !important; }
+      .print-footer { display: block !important; margin-top: 8pt; padding-top: 6pt; border-top: 1pt solid #999; font-size: 7pt; color: #444 !important; text-align: center; }
+      .card { background: #fff !important; border: 1pt solid #888; border-radius: 0; padding: 6pt 8pt; margin: 6pt 0; page-break-inside: auto; }
+      table { font-size: 8pt; }
+      th { background: #e8e8e8 !important; font-weight: 700; }
+      th, td { border: 0.5pt solid #666; padding: 3pt 4pt; }
+      .file-label { color: #000 !important; font-size: 8pt; margin-top: 4pt; margin-bottom: 2pt; page-break-after: avoid; }
+      pre { background: #f5f5f5 !important; color: #111 !important; border: 0.5pt solid #999; border-radius: 2pt; padding: 5pt 6pt; font-size: 6.5pt; line-height: 1.22; page-break-inside: auto; overflow: visible !important; white-space: pre-wrap; word-break: break-word; }
+      .code-wrap { page-break-inside: auto; margin: 4pt 0 6pt; }
     }
   </style>
 </head>
 <body>
 
-  <h1>Guía de estudio — Router-on-a-Stick + Netmiko</h1>
-  <p class="meta">Carpeta <code>Router-on-a-Stick</code> · Contenido alineado con <code>main.py</code> y <code>config.py</code> (VLSM 192.168.50.0/24).</p>
+  <h1>Guia de estudio — Router-on-a-Stick + CML Console Server</h1>
+  <p class="meta">Carpeta <code>Router-on-a-Stick</code> · VLSM 192.168.50.0/24 · Conexion via CML Console Server (paramiko SSH).</p>
 
-  <div class="print-hint">
-    <strong>Imprimir o PDF:</strong> en el navegador usa <kbd>Ctrl+P</kbd> (o menú Imprimir) y elige “Guardar como PDF” si no tienes impresora.
+  <div class="print-hint screen-only">
+    <strong>Imprimir o PDF:</strong> <kbd>Ctrl+P</kbd>. Escala 85-90% si quieres menos hojas.
   </div>
 
   <div class="card">
     <h2>Ideas clave (examen)</h2>
     <ul>
-      <li><strong>Router-on-a-Stick:</strong> un solo cable físico (trunk 802.1Q) entre switch y router; el router usa <strong>subinterfaces</strong> (<code>Ethernet0/0.10</code>, etc.) con <code>encapsulation dot1Q &lt;vlan&gt;</code>.</li>
-      <li><strong>Topología CML usada:</strong> R1 <code>E0/0</code> ↔ SW1 <code>E0/2</code> (trunk). SW1 <code>E0/0</code> VLAN 10 (PC1), <code>E0/1</code> VLAN 20 (PC2).</li>
-      <li><strong>VLSM:</strong> una sola red base partida en subredes de distinto tamaño; cada VLAN tiene su gateway en el router.</li>
-      <li><strong>Netmiko:</strong> <code>ConnectHandler</code> abre sesión, <code>enable()</code>, <code>send_config_set()</code>, <code>save_config()</code>.</li>
+      <li><strong>Router-on-a-Stick:</strong> un solo cable trunk 802.1Q entre switch y router; el router usa <strong>subinterfaces</strong> (<code>GigabitEthernet1.10</code>) con <code>encapsulation dot1Q &lt;vlan&gt;</code>.</li>
+      <li><strong>Topologia CML:</strong> R1 <code>G1</code> &harr; SW1 <code>Gi0/0</code> (trunk). SW1 <code>Gi0/1</code> VLAN 10 (PC1), <code>Gi0/2</code> VLAN 20 (PC2).</li>
+      <li><strong>VLSM:</strong> una red base partida en subredes de distinto tamaño; cada VLAN tiene su gateway en el router.</li>
+      <li><strong>Conexion:</strong> No hay Telnet/SSH directo al router. Se usa <code>paramiko</code> para SSH al CML Console Server y <code>open /Lab/Nodo/0</code> para acceder a la consola serial.</li>
+      <li><strong>Hosts Linux:</strong> Alpine Linux, IP con <code>sudo su</code> + <code>ip addr add</code> + <code>ip route add default via</code>.</li>
     </ul>
   </div>
 
   <div class="card">
-    <h2>Resumen VLSM (este <code>config.py</code>)</h2>
+    <h2>Resumen VLSM</h2>
     <table>
       <thead>
-        <tr><th>VLAN</th><th>Uso</th><th>Red / máscara</th><th>Gateway (R1)</th></tr>
+        <tr><th>VLAN</th><th>Uso</th><th>Red / mascara</th><th>Gateway (R1)</th><th>Host ejemplo</th></tr>
       </thead>
       <tbody>
-        <tr><td>10</td><td>Compras</td><td>192.168.50.0/26</td><td>192.168.50.1</td></tr>
-        <tr><td>20</td><td>Ventas</td><td>192.168.50.64/27</td><td>192.168.50.65</td></tr>
-        <tr><td>30</td><td>Inventario</td><td>192.168.50.96/28</td><td>192.168.50.97</td></tr>
-        <tr><td>99</td><td>Gestión</td><td>192.168.50.112/30</td><td>192.168.50.113 (SW1 SVI: .114)</td></tr>
+        <tr><td>10</td><td>Compras</td><td>192.168.50.0/26</td><td>192.168.50.1</td><td>PC1: .2</td></tr>
+        <tr><td>20</td><td>Ventas</td><td>192.168.50.64/27</td><td>192.168.50.65</td><td>PC2: .66</td></tr>
+        <tr><td>30</td><td>Inventario</td><td>192.168.50.96/28</td><td>192.168.50.97</td><td>—</td></tr>
+        <tr><td>99</td><td>Gestion</td><td>192.168.50.112/30</td><td>192.168.50.113</td><td>SW1 SVI: .114</td></tr>
       </tbody>
     </table>
   </div>
 
-  <h2>main.py</h2>
-  <p>Menú 1/2/3, conexión Telnet y envío de la lista de comandos.</p>
+  <div class="card">
+    <h2>Topologia CML</h2>
+    <table>
+      <thead>
+        <tr><th>Conexion</th><th>Interfaz equipo A</th><th>Interfaz equipo B</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Router &harr; Switch (trunk)</td><td>R1 GigabitEthernet1</td><td>SW1 GigabitEthernet0/0</td></tr>
+        <tr><td>Switch &harr; PC1</td><td>SW1 GigabitEthernet0/1</td><td>desktop-1 eth0</td></tr>
+        <tr><td>Switch &harr; PC2</td><td>SW1 GigabitEthernet0/2</td><td>desktop-0 eth0</td></tr>
+        <tr><td>Router &harr; ext-conn</td><td>R1 GigabitEthernet2</td><td>ext-conn-0 (bridge)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2 class="print-break">main.py</h2>
+  <p>SSH al CML Console Server, abre consola serial del equipo, envia comandos.</p>
   <div class="file-label">main.py</div>
-  <pre>from netmiko import ConnectHandler
-from config import R1, SW1, COMANDOS_R1, COMANDOS_SW1
+  <div class="code-wrap"><pre># Router-on-a-Stick — main.py
+#
+# Se conecta al CML Console Server por SSH (paramiko)
+# y envia comandos a cada dispositivo por su consola serial.
+#
+# Flujo: Tu PC --SSH--&gt; CML (10.10.20.161) --open--&gt; consola del equipo
+import paramiko
+import time
+from config import (
+    CML_HOST, CML_USER, CML_PASS, ENABLE_SECRET,
+    CONSOLA_R1, CONSOLA_SW1, CONSOLA_PC1, CONSOLA_PC2,
+    COMANDOS_R1, COMANDOS_SW1, COMANDOS_PC1, COMANDOS_PC2,
+)
 
 
-def configurar(params, comandos, nombre):
-    print(f"\n[*] Conectando a {nombre} ({params['host']})...")
-    try:
-        with ConnectHandler(**params) as con:
-            con.enable()
-            print("[+] Comandos a enviar:")
-            print("\n".join(comandos))
-            con.send_config_set(comandos)
-            con.save_config()
-        print(f"[+] {nombre} configurado y guardado.")
-    except Exception as e:
-        print(f"[-] Error en {nombre}: {e}")
+def leer(shell, espera=1):
+    time.sleep(espera)
+    salida = ''
+    while shell.recv_ready():
+        salida += shell.recv(65535).decode('utf-8', errors='ignore')
+    return salida
 
 
-print("=== Router-on-a-Stick - VPN requerida ===\n")
-print("1. Solo Router (R1)")
-print("2. Solo Switch (SW1)")
-print("3. Todo")
+def enviar(shell, cmd, espera=0.5):
+    shell.send(cmd + '\n')
+    return leer(shell, espera)
 
-opcion = input("\nOpción (1-3): ").strip()
 
-if opcion in ("1", "3"):
-    configurar(R1, COMANDOS_R1, "Router 1")
+def abrir_consola(ruta):
+    """SSH al CML Console Server y abre la consola de un nodo."""
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    ssh.connect(CML_HOST, username=CML_USER, password=CML_PASS,
+                look_for_keys=False, allow_agent=False)
+    shell = ssh.invoke_shell(width=200, height=50)
+    leer(shell, 2)
+    enviar(shell, f'open {ruta}', 4)
+    enviar(shell, '', 2)
+    enviar(shell, '', 2)
+    return ssh, shell
 
-if opcion in ("2", "3"):
-    configurar(SW1, COMANDOS_SW1, "Switch 1")
 
-print("\n¡Listo!")
-</pre>
+def configurar_cisco(ruta, comandos, nombre):
+    """Configura un equipo Cisco (router o switch)."""
+    print(f'\n{"="*50}')
+    print(f'  Configurando: {nombre}')
+    print(f'{"="*50}')
+    ssh, shell = abrir_consola(ruta)
 
-  <h2>config.py</h2>
-  <p>Diccionarios de conexión (<code>R1</code>, <code>SW1</code>) y listas <code>COMANDOS_R1</code>, <code>COMANDOS_SW1</code> más listas de validación.</p>
+    # Modo enable (manda password solo si lo pide)
+    salida = enviar(shell, 'enable', 2)
+    if 'assword' in salida:
+        enviar(shell, ENABLE_SECRET, 1)
+
+    # Enviar comandos
+    enviar(shell, 'configure terminal', 1)
+    for cmd in comandos:
+        enviar(shell, cmd, 0.3)
+        print(f'  &gt; {cmd}')
+
+    # Guardar
+    enviar(shell, 'end', 1)
+    enviar(shell, 'write memory', 3)
+    ssh.close()
+    print(f'[OK] {nombre} configurado y guardado.')
+
+
+def configurar_linux(ruta, comandos, nombre):
+    """Configura un host Linux (Alpine)."""
+    print(f'\n{"="*50}')
+    print(f'  Configurando: {nombre}')
+    print(f'{"="*50}')
+    ssh, shell = abrir_consola(ruta)
+
+    # Elevar a root
+    enviar(shell, 'sudo su', 2)
+
+    for cmd in comandos:
+        enviar(shell, cmd, 2)
+        print(f'  &gt; {cmd}')
+
+    ssh.close()
+    print(f'[OK] {nombre} configurado.')
+
+
+# -- Menu --
+print()
+print('=' * 50)
+print('  Router-on-a-Stick — CML Console Server')
+print('  VPN al sandbox DevNet requerida')
+print('=' * 50)
+print()
+print('1. Solo Router (R1)')
+print('2. Solo Switch (SW1)')
+print('3. Solo Hosts (PC1 + PC2)')
+print('4. TODO (R1 + SW1 + Hosts)')
+
+opcion = input('\nOpcion (1-4): ').strip()
+
+if opcion in ('1', '4'):
+    configurar_cisco(CONSOLA_R1, COMANDOS_R1, 'Router R1')
+
+if opcion in ('2', '4'):
+    configurar_cisco(CONSOLA_SW1, COMANDOS_SW1, 'Switch SW1')
+
+if opcion in ('3', '4'):
+    configurar_linux(CONSOLA_PC1, COMANDOS_PC1, 'PC1 desktop-1 (VLAN 10)')
+    configurar_linux(CONSOLA_PC2, COMANDOS_PC2, 'PC2 desktop-0 (VLAN 20)')
+
+print('\n--- Listo! ---')</pre></div>
+
+  <h2 class="print-break">config.py</h2>
+  <p>Datos de conexion CML, comandos del router, switch y hosts. <strong>Solo este archivo cambia si cambian IPs, VLANs o interfaces.</strong></p>
   <div class="file-label">config.py</div>
-  <pre># Plantilla para Router-on-a-Stick (completar con tu VLSM)
+  <div class="code-wrap"><pre># Router-on-a-Stick — config.py
 #
-# Requisito: VPN activa antes de ejecutar.
+# Conexion via CML Console Server (SSH a 10.10.20.161)
+# VPN activa antes de ejecutar.
 #
-# Hosts (puedes ajustarlos si cambian):
+# VLSM base: 192.168.50.0/24
+#   Compras    192.168.50.0/26   GW .1    (62 hosts)
+#   Ventas     192.168.50.64/27  GW .65   (30 hosts)
+#   Inventario 192.168.50.96/28  GW .97   (14 hosts)
+#   Gestion    192.168.50.112/30 GW .113  (2 hosts)
 
-R1 = {
-    'device_type': 'cisco_ios_telnet',
-    'host': '10.10.20.171',
-    'username': 'cisco',
-    'password': 'cisco',
-    'secret': 'cisco',
-}
+# -- CML Console Server --
+CML_HOST = '10.10.20.161'
+CML_USER = 'developer'
+CML_PASS = 'C1sco12345'
+ENABLE_SECRET = 'cisco'
 
-SW1 = {
-    'device_type': 'cisco_ios_telnet',
-    'host': '10.10.20.173',
-    'username': 'cisco',
-    'password': 'cisco',
-    'secret': 'cisco',
-}
+# Rutas de consola: /NombreLab/NombreNodo/Linea
+CONSOLA_R1  = '/Examen/cat8000v-0/0'
+CONSOLA_SW1 = '/Examen/iosvl2-0/0'
+CONSOLA_PC1 = '/Examen/desktop-1/0'
+CONSOLA_PC2 = '/Examen/desktop-0/0'
 
-# =========================
-# COMANDOS PARA EL ROUTER R1
-# =========================
-#
-# Usa subinterfaces Ethernet0/0.&lt;vlan&gt; y encapsulación dot1Q.
-# Completa las IPs/Máscaras según tu plan VLSM.
-#
+# -- ROUTER R1 --
+# Topologia: R1 GigabitEthernet1 &lt;--&gt; SW1 Gi0/0 (trunk)
 COMANDOS_R1 = [
-    'hostname R1',  # Define el nombre del router
-    'no ip domain-lookup',  # Desactiva la búsqueda DNS por nombre
-    'banner motd #Acceso solo para personal de TI#',  # Mensaje legal en consola
+    'hostname R1',
+    'no ip domain-lookup',
+    'banner motd #Acceso solo para personal de TI#',
 
-    # Limpia IP de la interfaz física (las subinterfaces llevarán la IP)
-    'interface Ethernet0/0',  # Entra a la interfaz física
-    'no ip address',  # Sin IP en la interfaz física (solo subinterfaces)
-    'no shutdown',  # Activa la interfaz física
-    'exit',  # Sale de la interfaz
+    # Interfaz fisica (trunk)
+    'interface GigabitEthernet1',
+    'no ip address',
+    'no shutdown',
+    'exit',
 
-    # VLAN 10 (Compras)
-    'interface Ethernet0/0.10',  # Subinterfaz VLAN 10 (Compras)
-    'encapsulation dot1Q 10',  # Etiqueta frames para VLAN 10
-    'ip address 192.168.50.1 255.255.255.192',  # Gateway VLAN 10
-    'description GW_COMPRAS',  # Descripción del gateway
-    'exit',  # Sale de la subinterfaz
+    # VLAN 10 - Compras
+    'interface GigabitEthernet1.10',
+    'encapsulation dot1Q 10',
+    'ip address 192.168.50.1 255.255.255.192',
+    'description GW_COMPRAS',
+    'exit',
 
-    # VLAN 20 (Ventas)
-    'interface Ethernet0/0.20',  # Subinterfaz VLAN 20 (Ventas)
-    'encapsulation dot1Q 20',  # Etiqueta frames para VLAN 20
-    'ip address 192.168.50.65 255.255.255.224',  # Gateway VLAN 20
-    'description GW_VENTAS',  # Descripción del gateway
-    'exit',  # Sale de la subinterfaz
+    # VLAN 20 - Ventas
+    'interface GigabitEthernet1.20',
+    'encapsulation dot1Q 20',
+    'ip address 192.168.50.65 255.255.255.224',
+    'description GW_VENTAS',
+    'exit',
 
-    # VLAN 30 (Inventario)
-    'interface Ethernet0/0.30',  # Subinterfaz VLAN 30 (Inventario)
-    'encapsulation dot1Q 30',  # Etiqueta frames para VLAN 30
-    'ip address 192.168.50.97 255.255.255.240',  # Gateway VLAN 30
-    'description GW_INVENTARIO',  # Descripción del gateway
-    'exit',  # Sale de la subinterfaz
+    # VLAN 30 - Inventario
+    'interface GigabitEthernet1.30',
+    'encapsulation dot1Q 30',
+    'ip address 192.168.50.97 255.255.255.240',
+    'description GW_INVENTARIO',
+    'exit',
 
-    # VLAN 99 (Gestión)
-    'interface Ethernet0/0.99',  # Subinterfaz VLAN 99 (Gestión)
-    'encapsulation dot1Q 99',  # Etiqueta frames para VLAN 99
-    'ip address 192.168.50.113 255.255.255.252',  # Gateway VLAN 99
-    'description GW_GESTION',  # Descripción del gateway
-    'exit',  # Sale de la subinterfaz
+    # VLAN 99 - Gestion
+    'interface GigabitEthernet1.99',
+    'encapsulation dot1Q 99',
+    'ip address 192.168.50.113 255.255.255.252',
+    'description GW_GESTION',
+    'exit',
 ]
 
-# =========================
-# COMANDOS PARA EL SWITCH SW1
-# =========================
-#
-# Topología CML (según diagrama del lab):
-#   R1 E0/0  &lt;--&gt;  SW1 E0/2   (trunk Router-on-a-Stick)
-#   SW1 E0/0 &lt;--&gt;  PC1        (access VLAN 10)
-#   SW1 E0/1 &lt;--&gt;  PC2        (access VLAN 20)
-#   SW1 E0/3     gestión CML  (no usar como access de datos si ya está en mgmt)
-#
-# - Crea VLAN 10/20/30/99
-# - Trunk en Ethernet0/2 hacia R1 (no en E0/0)
-# - E0/0/E0/1 access para PC1/PC2
-# - SVI VLAN 99 para IP del switch en la red de gestión
-#
+# -- SWITCH SW1 --
+# Topologia:
+#   SW1 Gi0/0 &lt;--&gt; R1 G1       (trunk)
+#   SW1 Gi0/1 &lt;--&gt; desktop-1   (VLAN 10)
+#   SW1 Gi0/2 &lt;--&gt; desktop-0   (VLAN 20)
 COMANDOS_SW1 = [
-    'hostname SW1',  # Define el nombre del switch
-    'banner motd #Acceso solo para personal de TI#',  # Mensaje legal en consola
+    'hostname SW1',
+    'banner motd #Acceso solo para personal de TI#',
 
-    'vlan 10',  # Crea VLAN 10
-    'name COMPRAS',  # Nombre de la VLAN 10
-    'exit',  # Sale de modo VLAN
-    'vlan 20',  # Crea VLAN 20
-    'name VENTAS',  # Nombre de la VLAN 20
-    'exit',  # Sale de modo VLAN
-    'vlan 30',  # Crea VLAN 30
-    'name INVENTARIO',  # Nombre de la VLAN 30
-    'exit',  # Sale de modo VLAN
-    'vlan 99',  # Crea VLAN 99
-    'name GESTION',  # Nombre de la VLAN 99
-    'exit',  # Sale de modo VLAN
+    # Crear VLANs
+    'vlan 10', 'name COMPRAS', 'exit',
+    'vlan 20', 'name VENTAS', 'exit',
+    'vlan 30', 'name INVENTARIO', 'exit',
+    'vlan 99', 'name GESTION', 'exit',
 
-    # PC1 (diagrama: E0/0 -&gt; VLAN 10)
-    'interface Ethernet0/0',  # Puerto hacia PC1
-    'switchport mode access',  # Define modo access
-    'switchport access vlan 10',  # VLAN Compras
-    'no shutdown',  # Activa el puerto
-    'exit',  # Sale del puerto
+    # Access: desktop-1 -&gt; VLAN 10
+    'interface GigabitEthernet0/1',
+    'switchport mode access',
+    'switchport access vlan 10',
+    'no shutdown', 'exit',
 
-    # PC2 (diagrama: E0/1 -&gt; VLAN 20)
-    'interface Ethernet0/1',  # Puerto hacia PC2
-    'switchport mode access',  # Define modo access
-    'switchport access vlan 20',  # VLAN Ventas
-    'no shutdown',  # Activa el puerto
-    'exit',  # Sale del puerto
+    # Access: desktop-0 -&gt; VLAN 20
+    'interface GigabitEthernet0/2',
+    'switchport mode access',
+    'switchport access vlan 20',
+    'no shutdown', 'exit',
 
-    # Trunk hacia R1 E0/0 (diagrama: SW1 E0/2 &lt;--&gt; R1 E0/0)
-    'interface Ethernet0/2',  # Puerto físico hacia el router (Router-on-a-Stick)
-    'switchport trunk encapsulation dot1q',  # Encapsulación del trunk
-    'switchport mode trunk',  # Cambia el puerto a trunk
-    'switchport trunk allowed vlan 10,20,30,99',  # VLANs permitidas en el trunk
-    'switchport nonegotiate',  # Evita negociación DTP
-    'no shutdown',  # Activa el trunk
-    'exit',  # Sale del puerto
+    # Trunk hacia R1
+    'interface GigabitEthernet0/0',
+    'switchport trunk encapsulation dot1q',
+    'switchport mode trunk',
+    'switchport trunk allowed vlan 10,20,30,99',
+    'switchport nonegotiate',
+    'no shutdown', 'exit',
 
-    # Gestión del switch (SVI)
-    'interface vlan 99',  # SVI para administración en VLAN 99
-    'ip address 192.168.50.114 255.255.255.252',  # IP del switch en VLAN 99
-    'no shutdown',  # Activa la SVI
-    'exit',  # Sale de la SVI
-    'ip default-gateway 192.168.50.113',  # Gateway para tráfico de gestión del switch
+    # SVI gestion
+    'interface vlan 99',
+    'ip address 192.168.50.114 255.255.255.252',
+    'no shutdown', 'exit',
+    'ip default-gateway 192.168.50.113',
 ]
 
-# =========================
-# COMANDOS DE VALIDACION
-# (Guia de comprobacion: al lado va la definicion corta)
-# =========================
-
-COMANDOS_VALIDACION_R1 = [
-    'show ip interface brief',  # Resume interfaces y subinterfaces (up/down + IP)
-    'show running-config interface Ethernet0/0.10',  # Verifica IP/mask/VLAN de subinterfaz .10
-    'show running-config interface Ethernet0/0.20',  # Verifica IP/mask/VLAN de subinterfaz .20
-    'show running-config interface Ethernet0/0.30',  # Verifica IP/mask/VLAN de subinterfaz .30
-    'show running-config interface Ethernet0/0.99',  # Verifica IP/mask/VLAN de subinterfaz .99
+# -- HOSTS LINUX (Alpine) --
+# Necesitan sudo su antes (el script lo maneja)
+COMANDOS_PC1 = [
+    'ip addr add 192.168.50.2/26 dev eth0',
+    'ip route add default via 192.168.50.1',
 ]
 
-COMANDOS_VALIDACION_SW1 = [
-    'show vlan brief',  # Muestra VLANs creadas y puertos asignados
-    'show interfaces trunk',  # Confirma el puerto trunk y VLANs permitidas
-    'show ip interface brief',  # Confirma SVI VLAN 99 (up/up + IP)
-    'ping 192.168.50.113',  # Ping al gateway del router en VLAN 99
-    'ping 192.168.50.1',  # Ping al gateway del router en VLAN 10
-    'ping 192.168.50.65',  # Ping al gateway del router en VLAN 20
-    'ping 192.168.50.97',  # Ping al gateway del router en VLAN 30
-]
-</pre>
+COMANDOS_PC2 = [
+    'ip addr add 192.168.50.66/27 dev eth0',
+    'ip route add default via 192.168.50.65',
+]</pre></div>
 
-  <p class="meta" style="margin-top:2rem;">Si actualizas los <code>.py</code>, vuelve a generar o copia el contenido nuevo a este HTML, o abre los archivos en el editor e imprime desde ahí.</p>
+  <div class="card">
+    <h2>Que memorizar</h2>
+    <ul>
+      <li><strong>paramiko:</strong> <code>SSHClient()</code> &rarr; <code>.connect(host, username, password)</code> &rarr; <code>.invoke_shell()</code> &rarr; <code>shell.send()</code> / <code>shell.recv()</code></li>
+      <li><strong>CML Console Server:</strong> SSH a 10.10.20.161 con developer/C1sco12345. Comando <code>open /Lab/Nodo/0</code> abre la consola serial.</li>
+      <li><strong>Router subinterfaz:</strong> <code>interface GigabitEthernet1.10</code> &rarr; <code>encapsulation dot1Q 10</code> &rarr; <code>ip address</code></li>
+      <li><strong>Switch trunk:</strong> <code>switchport trunk encapsulation dot1q</code> &rarr; <code>switchport mode trunk</code> &rarr; <code>switchport trunk allowed vlan</code></li>
+      <li><strong>Switch access:</strong> <code>switchport mode access</code> &rarr; <code>switchport access vlan 10</code></li>
+      <li><strong>Linux IP:</strong> <code>sudo su</code> &rarr; <code>ip addr add IP/CIDR dev eth0</code> &rarr; <code>ip route add default via GATEWAY</code></li>
+    </ul>
+  </div>
+
+  <footer class="print-footer">
+    Guia de estudio — Router-on-a-Stick · CML Console Server · VLSM 192.168.50.0/24 · Documento para repaso.
+  </footer>
 
 </body>
 </html>
