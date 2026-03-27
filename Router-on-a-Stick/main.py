@@ -9,36 +9,30 @@ from config import (
 
 def configurar(consola, comandos, nombre):
     print(f'\n[*] Conectando a {nombre}...')
-
-    # 1. Conectar al CML Console Server
     con = ConnectHandler(
         device_type='generic_termserver',
         host=CML_HOST,
         username=CML_USER,
         password=CML_PASS,
     )
+    try:
+        con.write_channel(f'open {consola}\n')
+        for espera in (4, 2, 2):
+            time.sleep(espera)
+            con.write_channel('\n')
+        con.read_channel()
 
-    # 2. Abrir consola del dispositivo
-    con.write_channel(f'open {consola}\n')
-    time.sleep(4)
-    con.write_channel('\n')
-    time.sleep(2)
-    con.write_channel('\n')
-    time.sleep(2)
-    con.read_channel()  # limpiar buffer
+        redispatch(con, device_type='cisco_ios')
+        con.secret = ENABLE_SECRET
+        con.enable()
 
-    # 3. Cambiar a modo Cisco IOS
-    redispatch(con, device_type='cisco_ios')
-    con.secret = ENABLE_SECRET
-
-    # 4. Configurar
-    con.enable()
-    print('[+] Comandos:')
-    print('\n'.join(comandos))
-    con.send_config_set(comandos)
-    con.save_config()
-    con.disconnect()
-    print(f'[OK] {nombre} configurado y guardado.')
+        print('[+] Comandos:')
+        print('\n'.join(comandos))
+        con.send_config_set(comandos)
+        con.save_config()
+        print(f'[OK] {nombre} configurado y guardado.')
+    finally:
+        con.disconnect()
 
 
 print('=== Router-on-a-Stick - VPN requerida ===\n')
