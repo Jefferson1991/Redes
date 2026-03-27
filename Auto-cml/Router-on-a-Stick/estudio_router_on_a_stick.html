@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Estudio Router-on-a-Stick</title>
+  <style>
+    body { font-family: Segoe UI, Arial, sans-serif; margin: 20px auto; max-width: 980px; line-height: 1.35; color: #111; }
+    h1, h2 { margin: 0 0 10px; }
+    .card { border: 1px solid #bbb; padding: 12px; margin: 12px 0; border-radius: 6px; }
+    pre { background: #f5f5f5; border: 1px solid #ccc; padding: 10px; overflow: auto; white-space: pre-wrap; font-size: 12px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 8px; font-size: 13px; }
+    th, td { border: 1px solid #bbb; padding: 6px; text-align: left; }
+    th { background: #eee; }
+    .muted { color: #555; font-size: 13px; }
+    @page { size: A4; margin: 10mm; }
+    @media print {
+      body { margin: 0; max-width: 100%; font-size: 10pt; }
+      .card { break-inside: avoid; }
+      pre { font-size: 8pt; }
+    }
+  </style>
+</head>
+<body>
+  <h1>Guia de estudio - Router-on-a-Stick (actualizado)</h1>
+  <p class="muted">Incluye el estado actual de <code>main.py</code> y <code>config.py</code>, con configuracion basica en R1/SW1 (hostname, enable secret, password-encryption y banner motd).</p>
+
+  <div class="card">
+    <h2>Resumen rapido</h2>
+    <table>
+      <thead>
+        <tr><th>Elemento</th><th>Valor actual</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Menu de ejecucion</td><td>Solo 1 = Router o 2 = Switch (sin opcion Todo)</td></tr>
+        <tr><td>Acceso a dispositivos</td><td>Via CML Console Server (open /Lab/Nodo/0)</td></tr>
+        <tr><td>VLSM base</td><td>192.168.50.0/24</td></tr>
+        <tr><td>Seguridad basica agregada</td><td>service password-encryption, enable secret, username admin, line con/vty, banner motd</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="card">
+    <h2>main.py (actual)</h2>
+<pre>from netmiko import ConnectHandler, redispatch
+import time
+from config import (
+    CML_HOST, CML_USER, CML_PASS, ENABLE_SECRET,
+    CONSOLA_R1, CONSOLA_SW1,
+    COMANDOS_R1, COMANDOS_SW1,
+)
+def configurar(consola, comandos, nombre):
+    print(f'\n[*] Conectando a {nombre}...')
+    con = ConnectHandler(
+        device_type='generic_termserver',
+        host=CML_HOST,
+        username=CML_USER,
+        password=CML_PASS,
+    )
+    try:
+        con.write_channel(f'open {consola}\n')
+        for espera in (4, 2, 2):
+            time.sleep(espera)
+            con.write_channel('\n')
+        con.read_channel()
+
+        redispatch(con, device_type='cisco_ios')
+        con.secret = ENABLE_SECRET
+        con.enable()
+
+        print('[+] Comandos:')
+        print('\n'.join(comandos))
+        con.send_config_set(comandos)
+        con.save_config()
+        print(f'[OK] {nombre} configurado y guardado.')
+    finally:
+        con.disconnect()
+
+
+print('=== Router-on-a-Stick - VPN requerida ===\n')
+print('1. Router (R1)')
+print('2. Switch (SW1)')
+
+opcion = input('\nOpcion (1-2): ').strip()
+
+if opcion == '1':
+    configurar(CONSOLA_R1, COMANDOS_R1, 'Router R1')
+elif opcion == '2':
+    configurar(CONSOLA_SW1, COMANDOS_SW1, 'Switch SW1')
+else:
+    print('\nOpcion invalida. Debe ser 1 o 2.')
+
+print('\nListo!')
+</pre>
+  </div>
+
+  <div class="card">
+    <h2>config.py - comandos de Router y Switch (actual)</h2>
+<pre>COMANDOS_R1 = [
+    'hostname R1',
+    'no ip domain-lookup',
+    'banner motd #Acceso solo para personal de TI#',
+    'service password-encryption',
+    'enable secret cisco',
+    'username admin privilege 15 secret cisco',
+    'line con 0',
+    'password cisco',
+    'login',
+    'exit',
+    'line vty 0 4',
+    'login local',
+    'transport input ssh telnet',
+    'exit',
+
+    'interface GigabitEthernet1',
+    'no ip address',
+    'no shutdown',
+    'exit',
+
+    'interface GigabitEthernet1.10',
+    'encapsulation dot1Q 10',
+    'ip address 192.168.50.1 255.255.255.192',
+    'description GW_COMPRAS',
+    'exit',
+
+    'interface GigabitEthernet1.20',
+    'encapsulation dot1Q 20',
+    'ip address 192.168.50.65 255.255.255.224',
+    'description GW_VENTAS',
+    'exit',
+
+    'interface GigabitEthernet1.30',
+    'encapsulation dot1Q 30',
+    'ip address 192.168.50.97 255.255.255.240',
+    'description GW_INVENTARIO',
+    'exit',
+
+    'interface GigabitEthernet1.99',
+    'encapsulation dot1Q 99',
+    'ip address 192.168.50.113 255.255.255.252',
+    'description GW_GESTION',
+    'exit',
+]
+
+COMANDOS_SW1 = [
+    'hostname SW1',
+    'banner motd #Acceso solo para personal de TI#',
+    'service password-encryption',
+    'enable secret cisco',
+    'username admin privilege 15 secret cisco',
+    'line con 0',
+    'password cisco',
+    'login',
+    'exit',
+    'line vty 0 4',
+    'login local',
+    'transport input ssh telnet',
+    'exit',
+
+    'vlan 10', 'name COMPRAS', 'exit',
+    'vlan 20', 'name VENTAS', 'exit',
+    'vlan 30', 'name INVENTARIO', 'exit',
+    'vlan 99', 'name GESTION', 'exit',
+
+    'interface GigabitEthernet0/1',
+    'switchport mode access',
+    'switchport access vlan 10',
+    'no shutdown', 'exit',
+
+    'interface GigabitEthernet0/2',
+    'switchport mode access',
+    'switchport access vlan 20',
+    'no shutdown', 'exit',
+
+    'interface GigabitEthernet0/0',
+    'switchport trunk encapsulation dot1q',
+    'switchport mode trunk',
+    'switchport trunk allowed vlan 10,20,30,99',
+    'switchport nonegotiate',
+    'no shutdown', 'exit',
+
+    'interface vlan 99',
+    'ip address 192.168.50.114 255.255.255.252',
+    'no shutdown', 'exit',
+    'ip default-gateway 192.168.50.113',
+]
+</pre>
+  </div>
+
+  <p class="muted">Tip: para imprimir, usa Ctrl+P y escala 90% si quieres menos hojas.</p>
+</body>
+</html>

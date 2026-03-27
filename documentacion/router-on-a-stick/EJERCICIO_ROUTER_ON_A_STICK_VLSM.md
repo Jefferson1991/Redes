@@ -77,4 +77,3 @@ Pruebas (pings):
 - Desde Gestión -> gateway router en VLAN 99.
 - Desde VLAN 10 -> gateway router VLAN 10.
 - Desde VLAN 20 -> gateway router VLAN 20.
-

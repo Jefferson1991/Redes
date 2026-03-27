@@ -18,4 +18,3 @@ Este mini-proyecto está pensado para estudiar una topología típica de examen:
 2. Calcula el VLSM, asigna VLANs y define gateways.
 3. Completa `COMANDOS_R1` (subinterfaces) y `COMANDOS_SW1` (VLANs + trunk + SVI).
 4. Ejecuta `main.py`.
-
